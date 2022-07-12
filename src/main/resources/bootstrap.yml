@@ -6,6 +6,17 @@ spring:
       uri: http://localhost:8081
       username: root
       password: s3cr3t
+    gateway:
+      routes:
+        - id: order_route
+          uri: http://localhost:9091
+          predicates:
+            - Path=/order/**
+      default-filters:
+        - name: Hystrix
+          args:
+            name: HystrixCommand
+            fallbackUri: forward:/fallbackDefaultMethod
 
 #Circuit Breaker Hystrix TimeOut
 hystrix:
@@ -14,3 +25,4 @@ hystrix:
       isolation:
         thread:
           timeoutInMilliseconds: 3000
+
