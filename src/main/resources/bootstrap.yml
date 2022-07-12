@@ -7,3 +7,10 @@ spring:
       username: root
       password: s3cr3t
 
+#Circuit Breaker Hystrix TimeOut
+hystrix:
+  command:
+    fallbackcmd:
+      isolation:
+        thread:
+          timeoutInMilliseconds: 3000
