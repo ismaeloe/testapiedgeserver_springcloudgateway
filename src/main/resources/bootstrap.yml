@@ -1,3 +1,9 @@
+logging:
+  level:
+    root: DEBUG
+#  file:
+#    name:/tmp/apiedge.log
+
 spring:
   application:
     name: gateway-service
@@ -10,11 +16,22 @@ spring:
       discovery:
         locator:
           enabled: true
+      default-filters:
+        - name: CircuitBreaker
+          args:
+            name: resilience4jcircuitbreaker
+            fallbackUri: forward:/resilience4jfallback
+
+#         ok Hystrix
+#        - name: Hystrix
+#          args:
+#            name: HystrixCommand
+#            fallbackUri: forward:/fallbackDefaultMethod
       routes:
-        - id: retry_example
-          uri: http://localhost:9091
+        - id: productresilience4j2
+          uri: lb://product-service
           predicates:
-            - Path=/order/**
+            - Path=/productsresilience4j2/**
 #         Add Pre and Post Filter   
           filters:
             - AddRequestHeader=X-Tenant, acme
@@ -27,18 +44,13 @@ spring:
                 methods: GET
 #               every retry wait a bit longer
                 backoff:
-                  firstBackoff: 50ms
+                  firstBackoff: 100ms
                   maxBackoff: 500ms
-#           Resilience 
+#           Resilience4j using CircuitBreaker GatewayFileter Factory
             - name: CircuitBreaker
               args:
-                name: bookService
-                fallbackUri: forward:/resilience-fallback
-      default-filters:
-        - name: Hystrix
-          args:
-            name: HystrixCommand
-            fallbackUri: forward:/fallbackDefaultMethod
+                name: product-service
+                fallbackUri: forward:/resilience4jfallback
 
 #Circuit Breaker Hystrix TimeOut
 hystrix:
@@ -52,7 +64,7 @@ hystrix:
 resilience4j:
   circuitbreaker:
     instances:
-      bookService:
+      product-service:
 #       Monitor the last 10 request      
         slidingWindowSize: 10
 #       If more than 50% failed THEN the Circuit become Open       
@@ -65,10 +77,10 @@ resilience4j:
         registerHealthIndicator: true
   timelimiter:
     instances:
-      bookService:
+      product-service:
 #       Max WaitTime to Receive Response from Service
 #       If exceeds will be considered as a Failure      
-        timeoutDuration: 2s
+        timeoutDuration: 3s
 
 #management.endpoint.gateway.enabled=true  #true is default value
 #management.endpoints.web.exposure.include=gateway

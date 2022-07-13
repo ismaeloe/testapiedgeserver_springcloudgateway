@@ -5,13 +5,18 @@ import java.util.Map;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+//import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
-import org.springframework.cloud.netflix.hystrix.EnableHystrix;
+
+//import org.springframework.cloud.netflix.hystrix.EnableHystrix;
+
 //import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,7 +48,7 @@ import reactor.core.publisher.Mono;
  *
  */
 @EnableEurekaClient
-@EnableHystrix
+//@EnableHystrix
 @RestController		//to HystrixCall
 @SpringBootApplication
 public class ApiedgeSpringcloudgatewayApplication {
@@ -68,7 +73,15 @@ public class ApiedgeSpringcloudgatewayApplication {
             			.uri("http://httpbin.org:80")) // forward to httpbin
     
             .route( p -> p.path("/guides").uri("https://spring.io") ) //lb:customers/ =LoadBalancer from Custormer Services without DNS
-            .route( p -> p.path("/lapi").and().method( HttpMethod.GET).uri("https://lapi.com.mx") ) //rewrite.backend.uri:https://lapi.com.mx/
+    
+            /* PERFECT REDIRECTION */
+            .route( p -> p.path("/lapi")
+            				.and()
+            				.method( HttpMethod.GET)
+            				.filters( filter ->
+            						  filter.redirect( HttpStatus.MOVED_PERMANENTLY.value() , "https://lapi.com.mx") )	//200 = IllegalArgumentException: status must be a 3xx code, but was 200
+            				.uri("https://lapi.com.mx")
+            				 ) //rewrite.backend.uri:https://lapi.com.mx/
             
             /* Remove from gateway-service.yml
              * - id: product-service
@@ -86,13 +99,17 @@ public class ApiedgeSpringcloudgatewayApplication {
 			 *   status": 503 Service Temporarily Unavailable
              */
             
-            //Route Mapping WITHOUT FILTER. Latest Version
-            .route( p -> p.path("/products")
+            //PERFECT Route Mapping WITHOUT FILTER. Latest Version
+            .route( p -> p.path("/productsv1")
             				.filters( filter ->
-            						  filter.hystrix( config ->
+            						  filter.rewritePath( "/productsv1", "/products")
+            						  /*OK
+            						  		.hystrix( config ->
             						  				  config.setName("mycmd")
-            												.setFallbackUri("forward:/fallbackMethod")
-            													))
+            												.setFallbackUri("forward:/hystrixFallbackMethod")
+            													)
+            							*/
+            						 )
             				.uri("lb://product-service") )  // lb://product-service from Eureka Registry Server
 
             // OR() Example
@@ -110,15 +127,24 @@ public class ApiedgeSpringcloudgatewayApplication {
              *   filters:
              *   - RewritePath=/productsv1, /products  
              */
-            .route( predicate -> predicate.path("/productsv1")
-            				.filters( filter -> filter.rewritePath( "/productsv1", "/products")
-            						.addResponseHeader("newHeader", "newHeaderValue") )
+            .route( predicate ->
+            		predicate.path("/products")	///productsv1
+            				 //.or()
+            				 //.path("/productsresilience4j")
+            				 .filters(	filter ->
+            				 			//filter.rewritePath( "/productsv1", "/products")
+            				 				  //.rewritePath( "/productsresilience4j", "/products")
+            							filter.circuitBreaker(	cb ->
+            													//cb.setRouteId("resilience4jCircuitBreaker")
+            													  cb.setName("resilience4jCircuitBreaker")//.setRouteId( "resilience4jCircuitBreaker" )
+            										  			  .setFallbackUri("resilience4jfallback").setRouteId("resilience4jCircuitBreaker")  )
+            								  .addResponseHeader("newHeader", "newHeaderValue") )
             				.uri("lb://product-service") )  
             .build();
     }
 
 	//Uses Mono
-	@RequestMapping("/fallbackMethod")
+	@RequestMapping("/hystrixFallbackMethod")
 	public Mono<String> fallbackMethod()
 	{
 	  return Mono.just("filter.hystrix.setFallbackUri( forward:/fallbackMethod /products");
@@ -132,13 +158,26 @@ public class ApiedgeSpringcloudgatewayApplication {
 	  return map;
 	}	
 
+	@GetMapping("/resilience4j-fallbackXX")
+	Flux<Void> getFallback() {
+	//Mono<String> getFallback() {
+		//return Mono.justOrEmpty("return resilience4j-fallback");
+		return Flux.empty();
+	}
+	
+	@RequestMapping("/resilience4jfallback")
+    public Mono<ResponseEntity<String>> inCaseOfFailureUseThis() {
+        return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("return resilience4j-fallback body for service failure case"));
+	}
 }
 
-@RestController
+//@RestController
 class FallbackController {
 
-	@GetMapping("/resilience-fallback")
-	Flux<Void> getFallback() {
+	@GetMapping("/resilience4j-fallbackX")
+	Flux<Void> getFallbackX() {
+	//Mono<String> getFallback() {
+		//return Mono.justOrEmpty("return resilience4j-fallback");
 		return Flux.empty();
 	}	
 }

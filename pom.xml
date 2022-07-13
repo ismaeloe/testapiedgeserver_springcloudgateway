@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<!--  version>2.7.1</version 
-		<version>2.6.9</version> 
-		
-		2.3.12.RELEASE Compatible with Hystrix
-		-->
-		
+		<!--		 
+ 
+		<version>2.7.1</version>		
+		2.3.12.RELEASE Compatible with Hystrix OK
 		<version>2.3.12.RELEASE</version>
-		
+		-->
+		<version>2.6.9</version>
+	
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	
@@ -25,8 +25,11 @@
 	<properties>
 		<java.version>11</java.version>
 		<!-- Sin Hystrix
-		 spring-cloud.version>2021.0.3</spring-cloud.version  -->
+		 <spring-cloud.version>2021.0.3</spring-cloud.version> 
+		 	  Con Hystrix
 		<spring-cloud.version>Hoxton.SR12</spring-cloud.version>
+		 --> 
+		 <spring-cloud.version>2021.0.3</spring-cloud.version>
 	</properties>
 	
 	<dependencies>
@@ -39,7 +42,12 @@
 		<dependency>
 		    <groupId>org.springframework.cloud</groupId>
 		    <artifactId>spring-cloud-starter-bootstrap</artifactId>
+		    <!--
+		     No Incluye bootstrap La Version 2.3.12.RELEASE Compatible with Hystrix OK
 		    <version>3.1.3</version>
+		    
+		    Pero la Version 2.7.1 Si la Incluye
+		     -->
 		</dependency>
 
 		<dependency>
@@ -51,11 +59,6 @@
 			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		</dependency>
 
-<!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-netflix-hystrix -->
-<dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
-</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -84,6 +87,20 @@
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
+
+<!-- https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-starter-netflix-hystrix 
+    
+		    Si Incluye netflix-hystrix La Version 2.3.12.RELEASE Compatible with Hystrix OK
+		    <version>3.1.3</version>
+		    
+		    Pero la Version 2.7.1 No la Incluye
+	-->	
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
+    <!-- Nov, 2021 -->
+    <version>2.2.10.RELEASE</version>
+</dependency>
 
 	</dependencies>
 
