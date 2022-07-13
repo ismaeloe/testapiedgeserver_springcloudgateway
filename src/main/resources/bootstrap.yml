@@ -7,11 +7,33 @@ spring:
       username: root
       password: s3cr3t
     gateway:
+      discovery:
+        locator:
+          enabled: true
       routes:
-        - id: order_route
+        - id: retry_example
           uri: http://localhost:9091
           predicates:
             - Path=/order/**
+#         Add Pre and Post Filter   
+          filters:
+            - AddRequestHeader=X-Tenant, acme
+            - AddResponseHeader=X-Genre,fantasy
+#           Circuit Breaker Retry JUST for GET, Not for POST
+#           Retry is a Built-IN Filter            
+            - name: Retry
+              args:
+                retries: 2
+                methods: GET
+#               every retry wait a bit longer
+                backoff:
+                  firstBackoff: 50ms
+                  maxBackoff: 500ms
+#           Resilience 
+            - name: CircuitBreaker
+              args:
+                name: bookService
+                fallbackUri: forward:/resilience-fallback
       default-filters:
         - name: Hystrix
           args:
@@ -26,3 +48,43 @@ hystrix:
         thread:
           timeoutInMilliseconds: 3000
 
+#Circuit Breaker Resilience4j
+resilience4j:
+  circuitbreaker:
+    instances:
+      bookService:
+#       Monitor the last 10 request      
+        slidingWindowSize: 10
+#       If more than 50% failed THEN the Circuit become Open       
+        failureRateThreshold: 50
+#       After 10 seconds will switch to Half Open
+        waitDurationInOpenState: 10000
+#       And Will Allow Only 5 Requests
+#       and If more than 50% are Successful it Becomes Close, otherwise Open 
+        permittedNumberOfCallsInHalfOpenState: 5
+        registerHealthIndicator: true
+  timelimiter:
+    instances:
+      bookService:
+#       Max WaitTime to Receive Response from Service
+#       If exceeds will be considered as a Failure      
+        timeoutDuration: 2s
+
+#management.endpoint.gateway.enabled=true  #true is default value
+#management.endpoints.web.exposure.include=gateway
+management:
+  endpoint:
+    gateway:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"     
+#       include: gateway
+#http://localhost:8080/actuator/prometheus
+
+#  health:
+#    livenessState.enabled: true
+#    readinessState.enabled: true
+#  endpoint.health.probes.enabled: true
+        

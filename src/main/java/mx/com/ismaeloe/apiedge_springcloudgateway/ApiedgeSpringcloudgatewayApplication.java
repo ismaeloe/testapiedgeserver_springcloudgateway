@@ -1,5 +1,8 @@
 package mx.com.ismaeloe.apiedge_springcloudgateway;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -9,9 +12,11 @@ import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 //import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /*
@@ -30,11 +35,11 @@ import reactor.core.publisher.Mono;
  * 
  * TODO Using Spring Cloud CircuitBreaker Resilience4J
 	https://spring.io/guides/gs/gateway/
-	
 	<dependency>
     	<groupId>org.springframework.cloud</groupId>
     	<artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
 	</dependency>
+	
  *
  */
 @EnableEurekaClient
@@ -83,10 +88,15 @@ public class ApiedgeSpringcloudgatewayApplication {
             
             //Route Mapping WITHOUT FILTER. Latest Version
             .route( p -> p.path("/products")
-            				.filters( filter -> filter.hystrix( config -> config.setName("mycmd")
-            																	.setFallbackUri("forward:/fallbackMethod")
+            				.filters( filter ->
+            						  filter.hystrix( config ->
+            						  				  config.setName("mycmd")
+            												.setFallbackUri("forward:/fallbackMethod")
             													))
             				.uri("lb://product-service") )  // lb://product-service from Eureka Registry Server
+
+            // OR() Example
+            .route( p -> p.path("/").or().path("/default").or().path("/js/**").uri( "lb://product-service" ) )
             
             /*
              * Route Mapping WITH FILTER, Old Version Redirected to Latest
@@ -109,8 +119,26 @@ public class ApiedgeSpringcloudgatewayApplication {
 
 	//Uses Mono
 	@RequestMapping("/fallbackMethod")
-	public Mono<String> fallback() {
+	public Mono<String> fallbackMethod()
+	{
 	  return Mono.just("filter.hystrix.setFallbackUri( forward:/fallbackMethod /products");
 	}	
-	
+
+	@RequestMapping("/fallbackMethodMap")
+	public Map<String,String> fallbackMethodMap()
+	{		
+		Map<String,String> map = new HashMap<String,String>();
+		map.put("key", "value");
+	  return map;
+	}	
+
+}
+
+@RestController
+class FallbackController {
+
+	@GetMapping("/resilience-fallback")
+	Flux<Void> getFallback() {
+		return Flux.empty();
+	}	
 }
