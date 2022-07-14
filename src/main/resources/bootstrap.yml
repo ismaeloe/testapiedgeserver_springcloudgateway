@@ -1,6 +1,10 @@
+#Custom log for GATEWAY and NETTY
 logging:
   level:
     root: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG
+    
 #  file:
 #    name:/tmp/apiedge.log
 
@@ -16,6 +20,9 @@ spring:
       discovery:
         locator:
           enabled: true
+#   By default when a service instance cannot be found in the LoadBalancer a 503 will be returned
+    loadbalancer:
+      use404: true
       default-filters:
         - name: CircuitBreaker
           args:
@@ -36,6 +43,12 @@ spring:
           filters:
             - AddRequestHeader=X-Tenant, acme
             - AddResponseHeader=X-Genre,fantasy
+            - name: AuthFilter
+              args:
+                baseMessage: My Custom Message
+                preLogger: true
+                postLogger: true
+#TODO       - RewritePath=/productsresilience4j2(?<segment>/?.*), $\{segment}
 #           Circuit Breaker Retry JUST for GET, Not for POST
 #           Retry is a Built-IN Filter            
             - name: Retry

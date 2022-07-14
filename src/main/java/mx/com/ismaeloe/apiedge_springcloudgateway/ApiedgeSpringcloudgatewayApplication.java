@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import mx.com.ismaeloe.apiedge_springcloudgateway.filter.AuthFilter;
+import mx.com.ismaeloe.apiedge_springcloudgateway.filter.AuthFilter.Config;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,7 +47,20 @@ import reactor.core.publisher.Mono;
     	<artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
 	</dependency>
 	
- *
+ * RESUMEN:
+ * 1 HIGHEST_PRECEDENCE Tiene Prioridad
+ * 2 Se ejecuta primero el GLOBAL FILTER y al Validar Authorization Si Regresa el 401 NOT AUTHORIZED
+ * 3 Si Ejecutamos primero el AUTHFilter con Resilience4J, el 401 NOT AUTHORIZED lo cambia por 404 NOT FOUND
+ * TODO
+ *  ignoreExceptions:
+       - com.resilience4j.exception.BusinessException
+       - feign.FeignException
+      recordExceptions:
+        - java.net.SocketTimeoutException
+        - java.net.ConnectException
+        https://github.com/resilience4j/resilience4j/issues/568
+        Use Flux.error(RuntimeException("fail"), true) to not trigger the error on subscribe but on request
+        https://stackoverflow.com/questions/49276946/resilience4j-how-to-handle-errors-when-using-a-circuit-breaker-in-a-spring-webfl
  */
 @EnableEurekaClient
 //@EnableHystrix
@@ -60,7 +75,7 @@ public class ApiedgeSpringcloudgatewayApplication {
 	//ApplicationListener<ApplicationEvent>
 	
 	@Bean
-    public RouteLocator myRoutes(RouteLocatorBuilder builder) {
+    public RouteLocator myRoutes(RouteLocatorBuilder builder ,AuthFilter authFilter) {
         return builder.routes()
           
         	/*
@@ -100,9 +115,9 @@ public class ApiedgeSpringcloudgatewayApplication {
              */
             
             //PERFECT Route Mapping WITHOUT FILTER. Latest Version
-            .route( p -> p.path("/productsv1")
+            .route( p -> p.path("/productsv2")
             				.filters( filter ->
-            						  filter.rewritePath( "/productsv1", "/products")
+            						  filter.rewritePath( "/productsv2", "/products")//.filter(AuthFilter.Config)
             						  /*OK
             						  		.hystrix( config ->
             						  				  config.setName("mycmd")
@@ -134,11 +149,13 @@ public class ApiedgeSpringcloudgatewayApplication {
             				 .filters(	filter ->
             				 			//filter.rewritePath( "/productsv1", "/products")
             				 				  //.rewritePath( "/productsresilience4j", "/products")
-            							filter.circuitBreaker(	cb ->
+            							filter.filter(authFilter.apply( new AuthFilter.Config("My Custom AUTH" ,true, true) ))
+            								  .circuitBreaker(	cb ->
             													//cb.setRouteId("resilience4jCircuitBreaker")
             													  cb.setName("resilience4jCircuitBreaker")//.setRouteId( "resilience4jCircuitBreaker" )
             										  			  .setFallbackUri("resilience4jfallback").setRouteId("resilience4jCircuitBreaker")  )
-            								  .addResponseHeader("newHeader", "newHeaderValue") )
+
+            								    .addResponseHeader("newHeader", "newHeaderValue") )
             				.uri("lb://product-service") )  
             .build();
     }
