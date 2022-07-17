@@ -5,22 +5,31 @@ logging:
     org.springframework.cloud.gateway: DEBUG
     reactor.netty.http.client: DEBUG
     
-#  file:
+#  file:  IN .properties
 #    name:/tmp/apiedge.log
 
 spring:
   application:
     name: gateway-service
+    admin:
+      enabled: true
   cloud:
     config:
       uri: http://localhost:8081
       username: root
       password: s3cr3t
+# Admin Service URL
+# spring.boot.admin.client.url=http://localhost:8089
+  boot:
+    admin:
+      client:
+        url: http://localhost:8089
     gateway:
       discovery:
         locator:
           enabled: true
 #   By default when a service instance cannot be found in the LoadBalancer a 503 will be returned
+#   FALTA PROBAR use404: FALSE 
     loadbalancer:
       use404: true
       default-filters:

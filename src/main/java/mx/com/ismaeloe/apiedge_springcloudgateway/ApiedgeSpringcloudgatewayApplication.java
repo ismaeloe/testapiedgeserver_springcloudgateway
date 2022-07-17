@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 //import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import mx.com.ismaeloe.apiedge_springcloudgateway.filter.AuthFilter;
 import mx.com.ismaeloe.apiedge_springcloudgateway.filter.AuthFilter.Config;
@@ -51,7 +53,12 @@ import reactor.core.publisher.Mono;
  * 1 HIGHEST_PRECEDENCE Tiene Prioridad
  * 2 Se ejecuta primero el GLOBAL FILTER y al Validar Authorization Si Regresa el 401 NOT AUTHORIZED
  * 3 Si Ejecutamos primero el AUTHFilter con Resilience4J, el 401 NOT AUTHORIZED lo cambia por 404 NOT FOUND
+ * 4 lb://product-service <== donde lb=Load Balancer from Eureka Registry Server
+ * 5 We Don't need @Bean @LoadBalanced public WebClient.Builder
+ *   porque utilizamos lb://  
  * TODO
+ * 	//ApplicationListener<ApplicationEvent>
+ * 
  *  ignoreExceptions:
        - com.resilience4j.exception.BusinessException
        - feign.FeignException
@@ -72,7 +79,15 @@ public class ApiedgeSpringcloudgatewayApplication {
 		SpringApplication.run(ApiedgeSpringcloudgatewayApplication.class, args);
 	}
 
-	//ApplicationListener<ApplicationEvent>
+	/*
+	 * Example taken from https://www.youtube.com/watch?v=iuH_B1FutRo&t=1033s
+	 * But It's No necessary because we are using .uri("lb://product-service")
+	 */
+	@Bean
+	@LoadBalanced
+	public WebClient.Builder loadBalancedRestTemplateWebClientBuilder() {
+		return WebClient.builder();
+	}
 	
 	@Bean
     public RouteLocator myRoutes(RouteLocatorBuilder builder ,AuthFilter authFilter) {
