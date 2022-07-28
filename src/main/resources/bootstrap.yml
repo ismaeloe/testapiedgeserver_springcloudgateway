@@ -18,6 +18,8 @@ spring:
       uri: http://localhost:8081
       username: root
       password: s3cr3t
+  zipkin:
+    base-url: http://localhost:9411/
 # Admin Service URL
 # spring.boot.admin.client.url=http://localhost:8089
   boot:

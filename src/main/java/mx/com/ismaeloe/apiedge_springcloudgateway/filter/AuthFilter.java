@@ -112,9 +112,7 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
 				System.err.println("FIRST AuthFilter POST FILTER");
 				LOG.warn( "FIST AuthFilter POST FILTER" );
 			}));
-		
-		
-					/*.map( string -> {
+				/*.map( string -> {
 					.flatMap {
 						exchange.getRequest()
 						.mutate()

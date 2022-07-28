@@ -42,17 +42,20 @@ public class LoggingGlobalPreFilter implements GlobalFilter ,Ordered {
 			String authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
 			
 			String[] parts = authHeader.split(" ");
-			if ( (parts.length != 2) || !"Bearer".equals( parts[0]) )
+			if ( ! authHeader.startsWith("Bearer ") || (parts.length != 2) || !"Bearer".equals( parts[0]) )
 			{
-				System.err.println("Incorrect Authenticated Structure");
-				logger.error("Incorrect Authenticated Structure");	
+				System.err.println("Incorrect Authorization Header");
+				logger.warn("Incorrect Authorization Header");
+				
 				//throw new RuntimeException("Incorrect Authenticated Structure");
-				throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Incorrect Authenticated Structure");
+				throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Missing Authorization Header");
 			}
-		
+
 			System.err.println(HttpHeaders.AUTHORIZATION + " =" + authHeader);
 			logger.warn("HttpHeaders.AUTHORIZATION ={}", authHeader);
-
+			
+			//TEST Add api-key
+			exchange.getRequest().mutate().header("api-key", parts[1]);
         	return chain.filter(exchange);
     	}
 
